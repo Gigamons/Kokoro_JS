@@ -1,0 +1,19 @@
+{
+  "name": "common",
+  "version": "1.0.0",
+  "description": "Common stuff for future projects.",
+  "main": "common.js",
+  "repository": "https://github.com/BananaCho/common.git",
+  "author": "Mempler <me@mempler.de>",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "bcrypt-nodejs": "^0.0.3",
+    "bluebird": "^3.5.1",
+    "colors": "^1.1.2",
+    "mysql": "^2.15.0",
+    "redis": "^2.8.0",
+    "sqlstring": "^2.3.0",
+    "util": "^0.10.3"
+  }
+}

@@ -1,0 +1,4 @@
+files/*
+.vscode/
+node_modules/
+config.js
