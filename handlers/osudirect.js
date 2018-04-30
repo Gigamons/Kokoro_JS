@@ -2,6 +2,7 @@ const osusearchset = require('express').Router();
 const osusearch = require('express').Router();
 const common = require('../common');
 const request = require('request');
+const requesth = require('../helpers/requestHelper');
 const config = require('../config');
 const url = require('url');
 const urlencode = require('urlencode');
@@ -58,13 +59,14 @@ const convertToCheesegull = (rankedStatus) => {
 
 class direct {
 
-  constructor(rankedStatus = 0, query = '', page = 0, mode = -1, set = 0) {
+  constructor(rankedStatus = 0, query = '', page = 0, mode = -1, set = 0, bm = 0) {
     this.rankedStatus = rankedStatus || 0;
     this.query = query || '';
     this.page = (page || 0) * 100;
     this.playMode = mode;
     this.Beatmaps = [];
     this.set = set;
+    this.bm = bm;
   }
 
   Search() {
@@ -99,28 +101,25 @@ class direct {
     });
   }
 
-  NP(set) {
-    return new Promise((resolve, reject) => {
+  async NP() {
+    let uri = new url.URL(config.cheesegull.api + '/s/' + this.set);
+    if (this.bm > 0)
+      uri = new url.URL(config.cheesegull.api + '/b/' + this.bm);
 
+    let req = await requesth.request_get(url.format(uri))
 
-      const uri = new url.URL(config.cheesegull.api + '/s/'+set);
-      request(url.format(uri), (err, response, body) => {
-        if (err) {
-          console.error(err);
-          reject(err);
-          return;
-        }
-        resolve(JSON.parse(body))
-      });
-    });
+    if(!JSON.parse(req.body)) return;
+    if(this.bm > 0) {
+      req = await requesth.request_get(config.cheesegull.api + '/s/' + (JSON.parse(req.body)).ParentSetID)
+    }
+    return JSON.parse(req.body);
   }
 
-  async toNPString(set) {
-    let outputString = "";
-    this.Beatmap = await this.NP(set);
-    
-    outputString += `${this.Beatmap.SetID}.osz|${this.Beatmap.Artist}|${this.Beatmap.Title}|${this.Beatmap.Creator}|${this.Beatmap.RankedStatus}|10.00|${this.Beatmap.LastUpdate}|${this.Beatmap.SetID}|${this.Beatmap.SetID}|${Number(this.Beatmap.HasVideo) || 0}|0|1234|${(this.Beatmap.HasVideo ? "4321" : "")}\r\n`
-    return outputString
+  async toNPString() {
+    this.Beatmap = await this.NP();
+    if (!this.Beatmap)
+      return `0`;
+    return `${this.Beatmap.SetID}.osz|${this.Beatmap.Artist}|${this.Beatmap.Title}|${this.Beatmap.Creator}|${this.Beatmap.RankedStatus}|10.00|${this.Beatmap.LastUpdate}|${this.Beatmap.SetID}|${this.Beatmap.SetID}|${Number(this.Beatmap.HasVideo) || 0}|0|1234|${(this.Beatmap.HasVideo ? "4321" : "")}\r\n`
   }
 
   async toSearchString() {
@@ -145,14 +144,14 @@ class direct {
       maxdif = Math.round(maxdif += 3);
       outputString += `${beatmapset.SetID}.osz|${beatmapset.Artist}|${beatmapset.Title}|${beatmapset.Creator}|` +
         `${beatmapset.RankedStatus}|${maxdif}.00|${beatmapset.LastUpdate}|${beatmapset.SetID}|` +
-        `${beatmapset.SetID}|${Number(beatmapset.HasVideo)  || 0 }|0|1234|${(beatmapset.HasVideo ? "4321" : "")}|`
+        `${beatmapset.SetID}|${Number(beatmapset.HasVideo) || 0}|0|1234|${(beatmapset.HasVideo ? "4321" : "")}|`
       for (let y = 0; y < beatmapset.ChildrenBeatmaps.length; y++) {
         const cbm = beatmapset.ChildrenBeatmaps[y];
         outputString += `${(cbm.DiffName.replace(/@/g, ""))} (${Number(cbm.DifficultyRating.toFixed(2))}★~${cbm.BPM}♫~AR${cbm.AR}~OD${cbm.OD}~CS${cbm.CS}~HP${cbm.HP}~${Math.floor(cbm.TotalLength / 60)}m${cbm.TotalLength % 60}s)@${cbm.Mode},`
       }
       outputString += '\r\n';
     }
-    
+
     outputString = outputString.slice(0, -1);
     outputString += '|';
     return outputString;
@@ -160,8 +159,7 @@ class direct {
 }
 
 osusearchset.use(async (req, res) => {
-  const Direct = new direct();
-  res.send(await Direct.toNPString(Number(req.query.s)))
+  res.send(await new direct(0, 0, 0, 0, Number(req.query.s), Number(req.query.b)).toNPString(Number(req.query.s)))
 });
 
 osusearch.use(async (req, res) => {
