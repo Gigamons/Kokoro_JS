@@ -93,7 +93,7 @@ class direct {
           reject(err);
           return;
         }
-        this.Beatmap = JSON.parse(body);
+        this.Beatmaps = JSON.parse(body);
         resolve()
       });
     });
