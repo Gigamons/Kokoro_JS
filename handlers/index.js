@@ -6,6 +6,7 @@ module.exports = {
     redirect: require('./redirect'),
     avatar: require('./avatar'),
     getreplay: require('./getreplay'),
+    osudirect: require('./osudirect'),
     empty: 'Not yet',
     okOutput: 'output: Ok'
 }

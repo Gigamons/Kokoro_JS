@@ -4,6 +4,10 @@ module.exports = {
         apikey: '',
         debug: false
     },
+    cheesegull: {
+        api: 'http://storage.gigamons.de/api',
+        download: 'http://storage.gigamons.de/d'
+    },
 	Kokoro: {
         WebSideURI: 'gigamons.de',
         websideurl: 'https://gigamons.de',

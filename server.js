@@ -23,6 +23,7 @@ const redirect = handlers.redirect;
 const submit = handlers.SubmitModular;
 const updater = handlers.Updater;
 const scoreboard = handlers.Scoreboard;
+const osudirect = handlers.osudirect;
 const okOutput = handlers.okOutput;
 const empty = handlers.empty;
 const SSHandler = handlers.SSHandler;
@@ -78,14 +79,13 @@ app.get('/web/osu-osz2-getscores.php', async (req, res) => {
 });
 
 
-app.get('/web/osu-search-set.php', async (req, res) => {
-  let username = req.param('u')
-  let password = req.param('h')
-  let beatmap = req.param('b')
-  let url = "?u=Mempler&h=sawnothinghere&b=" + beatmap;
+app.get('/web/osu-search-set.php', osudirect.osusearchset);
+app.get('/web/osu-search.php', osudirect.osusearch);
 
-  let r = ((await requestHelper.request_get('http://ripple.moe/web/osu-search-set.php' + url)).body)
-  res.send(r);
+app.get('/d/', async (req, res) => {
+  let id = req.url.split('/')[1];
+  let r = ((await requestHelper.request_get(config.cheesegull.download + id)).body)
+  res.end(r);
 });
 
 // 99.98% done
@@ -133,11 +133,12 @@ app.get('/ss/*', (req, res) => {
     res.end();
     cachedURLS.push(cache)
   }
-})
+});
 
 let ss = multer({
   dest: 'files/ss/'
 });
+
 app.post('/web/osu-screenshot.php', ss.single('ss'), async (req, res) => {
   if (checkAllowed(req)) {
     let SSHandlerSet = await SSHandler.set(req);
@@ -185,26 +186,6 @@ app.post('/web/osu-error.php', (req, res) => {
 
 app.get('/web/osu-rate.php', (req, res) => {
   res.send(empty);
-});
-
-app.get('/d/*', async (req, res) => {
-  let id = req.url.split('?')[0];
-  let r = ((await requestHelper.request_get("http://storage.ripple.moe" + id)).body)
-  res.end(r);
-});
-
-app.get('/web/osu-search.php', async (req, res) => {
-  let url = "";
-  let username = req.param('u')
-  let password = req.param('h')
-  let type = req.param('r')
-  let query = req.param('q')
-  let mode = req.param('m')
-  let page = req.param('p')
-  url = "?u=Mempler&h=82038245c25f2d37cf8ed263b40b35a9&r=" + type + "&q=" + query + "&m=" + mode + "&p=" + page
-
-  let r = ((await requestHelper.request_get('http://ripple.moe/web/osu-search.php' + url)).body)
-  res.send(r);
 });
 
 
