@@ -1,6 +1,3 @@
-[submodule "pp/oppai"]
-	path = pp/oppai
-	url = https://github.com/Francesco149/oppai-ng.git
 [submodule "common"]
 	path = common
 	url = https://git.gigamons.de/Gigamons/common.git
