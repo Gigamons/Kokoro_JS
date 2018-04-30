@@ -2,7 +2,6 @@ module.exports = {
     server: {
         port: 5002,
         apikey: '',
-        choprotocolversion: 19,
         debug: false
     },
 	Kokoro: {
