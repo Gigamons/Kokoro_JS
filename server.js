@@ -1,7 +1,7 @@
 const cluster = require('cluster');
 const config = require('./config');
 const fs = require('fs');
-
+const { join } = require('path');
 const os = require('os');
 
 const common = require('./common');
@@ -64,6 +64,13 @@ app.use((req, res, next) => {
     
   next();
 });
+
+app.get('/logo.png', (req, res) => {
+  const sharp = require('sharp');
+  sharp(fs.readFileSync(join(__dirname, 'files/logo.png')))
+  .resize(128, 128)
+  .pipe(res);
+}) 
 
 app.get('/web/osu-osz2-getscores.php', async (req, res) => {
   if (checkAllowed(req)) {
