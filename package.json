@@ -25,6 +25,7 @@
     "redis": "^2.8.0",
     "request": "^2.83.0",
     "rijndael-js": "^1.0.0",
+    "sharp": "^0.20.2",
     "sqlstring": "^2.3.0",
     "url": "^0.11.0",
     "urlencode": "^1.1.0",
