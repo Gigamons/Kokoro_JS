@@ -21,31 +21,33 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 // TODO: Rewrite this Whole file for new Database.
 
 
-async function addmap(beatmapsetid = 0, beatmapid = 0) {
-  let uri = new url.URL('https://osu.ppy.sh/api/get_beatmaps');
-  uri.searchParams.set('k', config.osu.apikey);
+async function addmap(beatmapsetid = 0) {
+  let uri = new url.URL('https://storage.gigamons.de/api/s/' + beatmapsetid);
 
-  if (beatmapsetid > 0)
-    uri.searchParams.append('s', beatmapsetid);
-  else
-    uri.searchParams.append('b', beatmapid);
-
-  console.log(uri.toString());
   const response = await requestHelper.request_get(uri.toString());
   const j = JSON.parse(response.body);
-  for (let i = 0; i < j.length; i++) {
-    const beatmap = j[i];
+  console.log(uri.toString());
 
-    await downloadMap(beatmap.beatmap_id);
-
-    if(await beatmapExists(beatmap.beatmap_id, beatmap.file_md5))
-     continue;
+  for (let i = 0; i < j.ChildrenBeatmaps.length; i++) {
+    const beatmap = j.ChildrenBeatmaps[i];
     
-    await mysql.query('INSERT INTO beatmaps_rating (beatmapMD5) VALUES (?) ', beatmap.file_md5)
+    if(await beatmapExists(beatmap.BeatmapID, beatmap.FileMD5))
+     continue;
+
+    if(j.RankedStatus === rankedStatus.needupdate)
+      j.RankedStatus = rankedStatus.ranked; 
+    
+    if(j.RankedStatus === rankedStatus.qualified)
+      j.RankedStatus = rankedStatus.loved;
+
+
+    await downloadMap(beatmap.BeatmapID);
+
+    await mysql.query('INSERT INTO beatmaps_rating (beatmapMD5) VALUES (?) ', beatmap.FileMD5)
 
     await mysql.query(`
       INSERT INTO beatmaps (beatmapSetID, beatmapID, beatmapMD5, rankedStatus, rankedDate, artist, title, creator, lastUpdate, difficulty, cs, od, ar, hp, hitlength, source, genreid, totallength, version, playMode, tags, playcount, max_combo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);
-    `, beatmap.beatmapset_id, beatmap.beatmap_id, beatmap.file_md5, beatmap.approved, (new Date(beatmap.approved_date)).toISOString(), beatmap.artist, beatmap.title, beatmap.creator, (new Date(beatmap.last_update)).toISOString(), beatmap.difficultyrating, beatmap.diff_size, beatmap.diff_overall, beatmap.diff_approach, beatmap.diff_drain, beatmap.hit_length, beatmap.source, beatmap.genre_id, beatmap.total_length, beatmap.version, beatmap.mode, beatmap.tags, 0, (beatmap.max_combo || 0));
+    `, j.SetID, beatmap.BeatmapID, beatmap.FileMD5, j.RankedStatus, (new Date(j.ApprovedDate)).toISOString(), j.Artist, j.Title, j.Creator, (new Date(j.LastUpdate)).toISOString(), beatmap.DifficultyRating, beatmap.CS, beatmap.OD, beatmap.AR, beatmap.HP, beatmap.HitLength, j.Source, j.Genre, beatmap.TotalLength, beatmap.DiffName, beatmap.Mode, j.Tags, 0, (beatmap.MaxCombo || 0));
   }
   
 }
@@ -68,7 +70,6 @@ async function CheckScoreExists(score_hash = '') {
 
 function getBeatmapData(beatmap = {}, totalScores = 0, scoreboardVersion = 4) {
   let status;
-  console.dir(beatmap);
   if (scoreboardVersion < 4 && beatmap.rankedStatus === rankedStatus.loved)
     status = rankedStatus.qualified;
   else
@@ -95,6 +96,9 @@ async function beatmapExists(bmid = 0, beatmaphash = '') {
         let uri = new url.URL('https://osu.ppy.sh/api/get_beatmaps');
         uri.searchParams.set('k', config.osu.apikey);
         uri.searchParams.append('b', bmid);
+
+        if(beatmap.approved === rankedStatus.needupdate)
+          beatmap.approved = rankedStatus.ranked;
         
         const response = await requestHelper.request_get(uri.toString());
         const j = JSON.parse(response.body);
