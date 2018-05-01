@@ -29,14 +29,15 @@ async function addmap(beatmapsetid = 0, beatmapid = 0) {
     uri.searchParams.append('s', beatmapsetid);
   else
     uri.searchParams.append('b', beatmapid);
-  
+
+  console.log(uri.toString());
   const response = await requestHelper.request_get(uri.toString());
   const j = JSON.parse(response.body);
   for (let i = 0; i < j.length; i++) {
     const beatmap = j[i];
 
     await downloadMap(beatmap.beatmap_id);
-    
+
     if(await beatmapExists(beatmap.beatmap_id, beatmap.file_md5))
      continue;
     
@@ -54,7 +55,7 @@ async function isRanked(hash = '') {
 }
 
 async function beatmapInfo(beatmapmd5 = '') {
-
+  return await mysql.query('SELECT * FROM beatmaps WHERE beatmapMD5 = ?', beatmapmd5);
 }
 
 async function hasBeatmapReply(score_hash) {
@@ -67,18 +68,19 @@ async function CheckScoreExists(score_hash = '') {
 
 function getBeatmapData(beatmap = {}, totalScores = 0, scoreboardVersion = 4) {
   let status;
-  if (scoreboardVersion < 4 && beatmap.ranked === rankedStatus.loved)
+  console.dir(beatmap);
+  if (scoreboardVersion < 4 && beatmap.rankedStatus === rankedStatus.loved)
     status = rankedStatus.qualified;
   else
     if (config.Kokoro.everythingisranked)
       status = rankedStatus.ranked;
-    else status = beatmap.ranked
+    else status = beatmap.rankedStatus;
 
-  let out = status + '|false'
-  if (beatmap.ranked != rankedStatus.not_submited && beatmap.ranked != rankedStatus.needupdate && beatmap.ranked != rankedStatus.unkown)
-    out += '|' + beatmap.beatmap_id + '|' + beatmap.beatmapset_id + '|' + totalScores + '\n' +
+  let out = status + '|true'
+  if (beatmap.rankedStatus != rankedStatus.not_submited && beatmap.rankedStatus != rankedStatus.needupdate && beatmap.rankedStatus != rankedStatus.unkown)
+    out += '|' + beatmap.beatmapID + '|' + beatmap.beatmapSetID + '|' + totalScores + '\n' +
       '\n' +
-      beatmap.song_name + '\n' +
+      beatmap.title + '\n' +
       '\n';
   return out;
 }
