@@ -89,27 +89,11 @@ app.get('/web/osu-osz2-getscores.php', async (req, res) => {
 app.get('/web/osu-search-set.php', osudirect.osusearchset);
 app.get('/web/osu-search.php', osudirect.osusearch);
 
-app.get('/d/', async (req, res) => {
-  let id = req.url.split('/')[1];
-  let r = ((await requestHelper.request_get(config.cheesegull.download + id)).body)
-  res.end(r);
+app.get('/d/*', async (req, res) => {
+  res.end(((await requestHelper.request_get(config.cheesegull.download + '/' +  req.url.split('/')[2])).body));
 });
 
-// 99.98% done
-app.post('/web/osu-submit-modular.php', replay.single('score'), async (req, res) => {
-  if (checkAllowed(req)) {
-    let ip = req.header('X-Real-IP');
-    if (ip == "127.0.0.1" || ip == '0.0.0.0')
-      ip = '';
-    const subModul = await submit(req.body, req.file, ip);
-    const statusCode = subModul[0];
-    const Out = subModul[1];
-
-    res.status(statusCode);
-    res.write(Out);
-    res.end();
-  }
-});
+app.post('/web/osu-submit-modular.php', replay.single('score'), submit);
 
 app.get('/web/osu-checktweets.php', (req, res) => {
   if (checkAllowed(req))
@@ -180,7 +164,7 @@ app.get('/web/check-updates.php', updater);
 
 // Not done yet
 app.get('/web/lastfm.php', (req, res) => {
-  res.send(empty);
+  res.send('-3');
 });
 
 app.get('/web/bancho_connect.php', (req, res) => {
@@ -192,7 +176,11 @@ app.post('/web/osu-error.php', (req, res) => {
 });
 
 app.get('/web/osu-rate.php', (req, res) => {
-  res.send(empty);
+  const beatmap = req.query.c;
+  const rating = req.query.v;
+  if(!rating)
+    res.send('ok');
+  else res.send('Your mom is Gay');
 });
 
 

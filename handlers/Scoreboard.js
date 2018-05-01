@@ -66,9 +66,9 @@ class sb {
   async getScoreboardData() {
     await this.Friends();
     await this.Country();
-    await this.Scores();
+    // await this.Scores();
 
-    return "";
+    return;
   }
 
 }
@@ -78,6 +78,8 @@ async function scoreboard(query, ip, req) {
     const Beatmap_Checksumm = query.c;
     const Beatmap_Filename = query.f;
     const beatmapsetId = query.i;
+
+    await addMap(beatmapsetId);
   
     const playMode = query.m;
     const Scoreboard_Type = query.v;
