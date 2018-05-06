@@ -56,16 +56,18 @@ app.use((req, res, next) => {
     return;
   }
 
-  console.log(
-    req.protocol + '://' + req.hostname + req.url
-  );
-  if(req.body)
-    console.dir(req.body);
+  //console.log(
+  //  req.protocol + '://' + req.hostname + req.url
+  //);
+  //if(req.body)
+  //  console.dir(req.body);
     
   next();
 });
 
 app.get('/logo.png', (req, res) => {
+  if(!fs.existsSync('files/logo.png'))
+    return;
   const sharp = require('sharp');
   sharp(fs.readFileSync(join(__dirname, 'files/logo.png')))
   .resize(128, 128)
@@ -93,7 +95,7 @@ app.get('/d/*', async (req, res) => {
   res.end(((await requestHelper.request_get(config.cheesegull.download + '/' +  req.url.split('/')[2])).body));
 });
 
-app.post('/web/osu-submit-modular.php', replay.single('score'), submit);
+app.post('/web/osu-submit-modular.php', submit);
 
 app.get('/web/osu-checktweets.php', (req, res) => {
   if (checkAllowed(req))

@@ -86,8 +86,6 @@ class direct {
       uri.searchParams.append('status', convertToCheesegull(this.rankedStatus));
       uri.searchParams.append('query', this.query);
 
-      console.dir(this.playMode);
-
 
       request(url.format(uri), (err, response, body) => {
         if (err) {
@@ -126,33 +124,37 @@ class direct {
     let outputString = "";
     await this.Search();
 
-    if (this.Beatmaps.length >= 100)
-      outputString += "999";
-    else
-      outputString += this.Beatmaps.length;
+    
+    if(this.Beatmaps)
+      if (this.Beatmaps.length >= 100)
+        outputString += "999";
+      else
+        outputString += this.Beatmaps.length;
+    else outputString += "0";
 
     outputString += "\n";
 
-    for (let i = 0; i < this.Beatmaps.length; i++) {
-      const beatmapset = this.Beatmaps[i];
-      let maxdif = 0.00;
-      for (let bms = 0; bms < beatmapset.ChildrenBeatmaps.length; bms++) {
-        const bm = beatmapset.ChildrenBeatmaps[bms];
-        if (bm.DifficultyRating > maxdif)
-          maxdif = bm.DifficultyRating;
+    if(this.Beatmaps)
+      for (let i = 0; i < this.Beatmaps.length; i++) {
+        const beatmapset = this.Beatmaps[i];
+        let maxdif = 0.00;
+        for (let bms = 0; bms < beatmapset.ChildrenBeatmaps.length; bms++) {
+          const bm = beatmapset.ChildrenBeatmaps[bms];
+          if (bm.DifficultyRating > maxdif)
+            maxdif = bm.DifficultyRating;
+        }
+        maxdif = Math.round(maxdif += 3);
+        outputString += `${beatmapset.SetID}.osz|${beatmapset.Artist}|${beatmapset.Title}|${beatmapset.Creator}|` +
+          `${beatmapset.RankedStatus}|${maxdif}.00|${beatmapset.LastUpdate}|${beatmapset.SetID}|` +
+          `${beatmapset.SetID}|${Number(beatmapset.HasVideo) || 0}|0|1234|${(beatmapset.HasVideo ? "4321" : "")}|`
+        for (let y = 0; y < beatmapset.ChildrenBeatmaps.length; y++) {
+          const cbm = beatmapset.ChildrenBeatmaps[y];
+          outputString += `${(cbm.DiffName.replace(/@/g, ""))} (${Number(cbm.DifficultyRating.toFixed(2))}★~${cbm.BPM}♫~AR${cbm.AR}~OD${cbm.OD}~CS${cbm.CS}~HP${cbm.HP}~${Math.floor(cbm.TotalLength / 60)}m${cbm.TotalLength % 60}s)@${cbm.Mode},`
+        }
+        outputString += '\r\n';
       }
-      maxdif = Math.round(maxdif += 3);
-      outputString += `${beatmapset.SetID}.osz|${beatmapset.Artist}|${beatmapset.Title}|${beatmapset.Creator}|` +
-        `${beatmapset.RankedStatus}|${maxdif}.00|${beatmapset.LastUpdate}|${beatmapset.SetID}|` +
-        `${beatmapset.SetID}|${Number(beatmapset.HasVideo) || 0}|0|1234|${(beatmapset.HasVideo ? "4321" : "")}|`
-      for (let y = 0; y < beatmapset.ChildrenBeatmaps.length; y++) {
-        const cbm = beatmapset.ChildrenBeatmaps[y];
-        outputString += `${(cbm.DiffName.replace(/@/g, ""))} (${Number(cbm.DifficultyRating.toFixed(2))}★~${cbm.BPM}♫~AR${cbm.AR}~OD${cbm.OD}~CS${cbm.CS}~HP${cbm.HP}~${Math.floor(cbm.TotalLength / 60)}m${cbm.TotalLength % 60}s)@${cbm.Mode},`
-      }
-      outputString += '\r\n';
-    }
-
-    outputString = outputString.slice(0, -1);
+    if(!this.Beatmaps)
+      outputString = outputString.slice(0, -1);
     outputString += '|';
     return outputString;
   }

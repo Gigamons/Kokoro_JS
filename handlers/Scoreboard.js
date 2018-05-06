@@ -1,5 +1,5 @@
 const common = require('../common');
-const beatmapHelper = require('../helpers/beatmap');
+const Beatmap = require('../helpers/beatmap');
 const exceptions = require('../helpers/exceptions');
 const TimeHelper = require('../helpers/time');
 const { format } = require('sqlstring');
@@ -12,10 +12,6 @@ const RankedStatus = common.rankedStatus;
 const ModHelper = common.Mods;
 const CountryHelper = common.countryHelper;
 const IPHelper = common.ipHelper;
-
-const addMap = beatmapHelper.addmap;
-const getScoreboardData = beatmapHelper.getScoreboardData;
-const beatmapExistsHash = beatmapHelper.beatmapExistsHash;
 
 let cachedscoreboards = [];
 // Todo: Finish that.
@@ -35,6 +31,7 @@ class sb {
     this.scores = []
     this.personalBest = [];
     this.friendlist = [];
+    this.beatmap = new Beatmap(0, this.beatmapHash);
   }
 
   async Friends() {
@@ -91,16 +88,35 @@ class sb {
   }
 
   async getScoreboardData() {
-    let bm = await beatmapHelper.beatmapInfo(this.beatmapHash);
-    
-    if(bm.length < 1){
-      bm[0].rankedStatus = RankedStatus.not_submited;
-      bm[0].beatmapID = 0;
-      bm[0].beatmapSetID = 0;
+    await this.beatmap._init();
+    let bm;
+    try {
+      bm = await this.beatmap.info();
+    } catch (ex) {
+      console.error(ex);
+      bm = {
+        rankedStatus: RankedStatus.not_submited,
+        beatmapID: 0,
+        beatmapSetID: 0
+      }
+    }
+
+    if(bm.beatmapID === 0) {
+      try {
+        await this.beatmap._setMapfromOsu();
+        bm = await this.beatmap.info();
+      } catch (ex) {
+        console.error(ex);
+        bm = {
+          rankedStatus: RankedStatus.latestpending,
+          beatmapID: 0,
+          beatmapSetID: 0
+        }
+      }
     }
 
     // We don't need unessecery query's if ranked status is not loved/ranked/approved/qualified.
-    if(bm[0].rankedStatus != RankedStatus.not_submited && bm[0].rankedStatus != RankedStatus.needupdate && bm[0].rankedStatus != RankedStatus.unkown) {
+    if(bm.rankedStatus != RankedStatus.not_submited && bm.rankedStatus != RankedStatus.needupdate && bm.rankedStatus != RankedStatus.unkown) {
       await this.Friends();
       await this.Country();
       await this.Scores();
@@ -108,9 +124,30 @@ class sb {
     }
 
     let outputString = '';
-    outputString += beatmapHelper.getBeatmapData(bm[0], await this.totalScores(), this.sb_version);
+    outputString += await this.beatmap.toBeatmapHeader(this.sb_version, await this.totalScores())
 
-
+    for (let i = 0; i < 51; i++) {
+      const score = this.scores[i];
+      if(score && score[i]){
+        outputString += score.id + '|';
+        outputString += UserTools.getusername(score.userid) + '|';
+        outputString += score.score + '|';
+        outputString += score.combo + '|';
+        outputString += score.count_50 + '|';
+        outputString += score.count_100 + '|';
+        outputString += score.count_300 + '|';
+        outputString += score.count_miss + '|';
+        outputString += score.count_katu + '|';
+        outputString += score.count_geki + '|';
+        outputString += Number(score.count_100 < 1 && score.count_50 < 0 && score.count_miss < 0) + '|';
+        outputString += score.mods + '|';
+        outputString += score.userid + '|';
+        outputString += (score.pos + 1) + '|';
+        outputString += 0 + '|';
+        outputString += 0;
+      }
+      outputString += '\n';
+    }
     return outputString;
   }
 
@@ -121,8 +158,6 @@ async function scoreboard(query, ip, req) {
     const Beatmap_Checksumm = query.c;
     const Beatmap_Filename = query.f;
     const beatmapsetId = query.i;
-
-    await addMap(beatmapsetId);
 
     const playMode = query.m;
     const Scoreboard_Type = query.v;
@@ -138,13 +173,13 @@ async function scoreboard(query, ip, req) {
     if (!await UserTools.checkLoggedIn(userid, Password_Hash))
       throw 'pass';
 
-    if (query.a !== 0 && query.a !== "0") { await UserTools.banUser(userid, "Detected some kind of Hacks"); throw 'hax'; }
+    if (query.a !== 0 && query.a !== "0") {  }
 
     const s = new sb(query.mods, userid, Scoreboard_Version, Scoreboard_Type, Beatmap_Checksumm, playMode);
 
     return await s.getScoreboardData();
   } catch (ex) {
-    console.log(ex)
+    console.error(ex)
     switch (ex) {
       case 'pass':
         break;

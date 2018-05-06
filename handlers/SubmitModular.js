@@ -22,7 +22,6 @@ const eventtool = common.EventTool;
 const crypto = common.Crypto;
 const timehelper = require('../helpers/time');
 const modhelper = common.Mods;
-
 // PP
 const PPCalculator = require('../pp');
 
@@ -79,74 +78,10 @@ function PythonTime() {
   return pythontime;
 }
 
-router.use(async (req, res) => {
-  res.send(await submit(req.body, req.file))
-});
-
-async function submit(body, file) {
-  try {
-    let output = [];
-    if (body.score == null || body.score == undefined || body.iv == null || body.iv == undefined || body.pass == null || body.pass == undefined)
-      throw 'beatmap';
-
-
-    const decryptscoreData = decryptdata(body.score, body.iv, body.osuver);
-    // Process list got removed on on 2018
-    // const ProcessList = decryptdata(body.pl, body.iv, body.osuver);
-
-    const scoreData = decryptscoreData.split(":");
-    const SecurityHash = trim(decryptdata(body.s, body.iv, body.osuver));
-    const someDetections = decryptdata(body.fs, body.iv, body.osuver).split(':')
-
-    let somedetects = []
-    for (let i = 0; i < someDetections.length; i++) {
-      const element = someDetections[i];
-      if (element.startsWith('False')) somedetects.push(false);
-      else if (element.startsWith('True')) somedetects.push(true);
-    }
-
-    let bmk = false;
-    let bml = false;
-    if (body.bmk != null || body.bmk != undefined && body.bml != null || body.bmk != undefined) {
-      bmk = body.bmk;
-      bml = body.bml;
-    }
-    const fileMD5 = scoreData[0];
-    const username = trim(scoreData[1]);
-    const ScoreHASH = trim(scoreData[2]); //TODO Bruteforce the ScoreHash
-    const three = Number(scoreData[3]);
-    const hundred = Number(scoreData[4]);
-    const five = Number(scoreData[5]);
-    const Geki = Number(scoreData[6]);
-    const Katu = Number(scoreData[7]);
-    const Miss = Number(scoreData[8]);
-    const score = Number(scoreData[9]);
-    const maxCombo = Number(scoreData[10]);
-    const FullCombo = scoreData[11] == 'True';
-    const ArchivedLetter = scoreData[12];
-    const mods = Number(scoreData[13]);
-    const passed = scoreData[14] == 'True';
-    const mode = Number(scoreData[15]);
-    const OsuDate = Number(scoreData[16]);
-    const date = PythonTime();
-    const rawVersion = scoreData[17];
-    const OsuVersion = Number(scoreData[17]);
-    const BadFlag = (length(rawVersion) - length(trim(rawVersion))) & ~4;
-    const userid = await usertools.getuserid(username);
-    const password = body.pass;
-
-    const isLoggedin = await usertools.checkLoggedIn(userid, password);
-    if (!isLoggedin) throw 'pass';
-
-    const accuracy = PPCalculator.calcacc(three, hundred, five, Miss, Katu, Geki, mode);
-    return "ok";
-  } catch (ex) {
-    switch (ex) {
-      default:
-        console.error(ex);
-        break;
-    }
-  }
+async function submit(req, res) {
+  const body = req.body;
+  const file = req.file;
+  console.dir(file);
 }
 
 function archivementMaker(Object = { Badge: 'all-secret-jackpot', Title: 'Here come dat PP', Description: 'Oh shit waddup' }) {
@@ -158,4 +93,4 @@ async function gotfirstPlace(beatmaphash = '', score_hash = '') {
   if (result[0].score_hash == score_hash) return true;
   else return false;
 }
-module.exports = router;
+module.exports = submit;
