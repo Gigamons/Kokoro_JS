@@ -47,7 +47,7 @@ setInterval(() => {
     if (e.expiredate < currentTime)
       cachedURLS.splice(i, 1);
   }
-}, 100);
+}, 1000);
 
 // Middleware for Debugging and for Avatar Server
 app.use((req, res, next) => {
@@ -56,11 +56,11 @@ app.use((req, res, next) => {
     return;
   }
 
-  //console.log(
-  //  req.protocol + '://' + req.hostname + req.url
-  //);
-  //if(req.body)
-  //  console.dir(req.body);
+  // console.log(
+  //   req.method + ' ' + req.protocol + '://' + req.hostname + req.url
+  // );
+  // if(req.body)
+  //   console.dir(req.body);
     
   next();
 });
@@ -77,7 +77,7 @@ app.get('/logo.png', (req, res) => {
 app.get('/web/osu-osz2-getscores.php', async (req, res) => {
   if (checkAllowed(req)) {
     let ip = req.header('X-Real-IP');
-    // let maybeCache = geturl(req.url);
+    let maybeCache = geturl(req.url);
     if (ip == "127.0.0.1" || ip == '0.0.0.0')
       ip = '';
     let cacheduri = cachedURL(TimeHelper.minute * 5)
@@ -95,7 +95,7 @@ app.get('/d/*', async (req, res) => {
   res.end(((await requestHelper.request_get(config.cheesegull.download + '/' +  req.url.split('/')[2])).body));
 });
 
-app.post('/web/osu-submit-modular.php', submit);
+app.post('/web/osu-submit-modular.php', replay.single('score'), submit);
 
 app.get('/web/osu-checktweets.php', (req, res) => {
   if (checkAllowed(req))
@@ -166,7 +166,7 @@ app.get('/web/check-updates.php', updater);
 
 // Not done yet
 app.get('/web/lastfm.php', (req, res) => {
-  res.send('-3');
+  res.send(empty);
 });
 
 app.get('/web/bancho_connect.php', (req, res) => {

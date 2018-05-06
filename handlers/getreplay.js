@@ -28,12 +28,11 @@ async function get(query) {
                 throw 'invalid';
             }
             // Now lets get our ScoreData
-            let scoreData = await mysql.query('SELECT scores.*, users.username AS uname FROM scores LEFT JOIN users ON scores.userid = users.id WHERE scores.scoreid = ?', [replayID])
+            let scoreData = await mysql.query('SELECT replay_hash FROM scores WHERE scoreid = ?', replayID)
             // If Score found
             if(scoreData[0]){
                 // Send raw replay! NOT FULL REPLAY! becourse osu is gonna compile it to a FullReplay
-                let filePath = path.join(__dirname + '/../files/replay/'+scoreData[0].replay_hash+'.osr');
-                return fs.readFileSync(filePath);
+                return Buffer.from((await mysql.query('SELECT * FROM replays WHERE replay_hash = ?', scoreData[0].replay_hash))[0].replay, "HEX");
             }
             return ''
         } else throw 'No'
@@ -46,6 +45,7 @@ async function get(query) {
                 return '';
                 break;
             default:
+                console.error(ex);
                 return 'error: '+ex
                 break;
         }

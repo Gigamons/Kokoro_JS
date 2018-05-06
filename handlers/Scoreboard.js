@@ -43,7 +43,7 @@ class sb {
   }
 
   async Scores() {
-    let q = format("SELECT * FROM scores STRAIGHT_JOIN users ON scores.userid = users.id STRAIGHT_JOIN users_status ON users.id = users_status.id WHERE scores.beatmap_hash = ? AND scores.playmode = ? AND scores.passed = 1 AND (users_status.banned < 1 OR users.id = ?) ", [this.beatmapHash, this.playMode, this.userid]);
+    let q = format("SELECT scoreid, MAX(score) FROM scores STRAIGHT_JOIN users ON scores.userid = users.id STRAIGHT_JOIN users_status ON users.id = users_status.id WHERE scores.beatmap_hash = ? AND scores.playmode = ? AND (users_status.banned < 1 OR users.id = ?) ", [this.beatmapHash, this.playMode, this.userid]);
 
     if (this.sb_type.country) {
       q += format("AND users_status.country = (SELECT country FROM users_status WHERE id = ? LIMIT 1) ", [this.userid])
@@ -61,32 +61,40 @@ class sb {
       q += format("AND (scores.mods & 128 > 0 OR scores.mods & 8192 > 0) ")
     }
 
-    q += "ORDER BY score DESC LIMIT 100"
+    q += "GROUP BY userid ORDER BY max(score) DESC LIMIT 100"
 
-    this.scores = await mysql.query(q)
+    const s = await mysql.query(q);
+    console.dir(q);
+    for (let i = 0; i < s.length; i++) {
+      const score = s[i];
+      this.scores.push(await this.getScorebyID(score.scoreid + 1) || await this.getScorebyID(score.scoreid))
+    }
   }
 
   async totalScores() {
-    return (mysql.query('SELECT * FROM scores WHERE beatmap_hash = ? AND passed = 1', this.beatmapHash)).length;
+    return (mysql.query('SELECT * FROM scores WHERE beatmap_hash = ?', this.beatmapHash)).length;
   }
 
   async getPersonalBest() {
-    let q = format('SELECT id FROM scores WHERE userid = ? AND beatmap_hash = ? AND playmode = ? AND passed = 1 ', [this.userid, this.b, this.beatmapHash, this.playMode]);
+    let q = format('SELECT * FROM scores WHERE userid = ? AND beatmap_hash = ? AND playmode = ? ', [this.userid, this.beatmapHash, this.playMode]);
 
-    if (this.sb_type.friends) {
-      q += format("AND (scores.userid IN (SELECT friendid FROM friends WHERE userid = ?) OR scores.userid = ?) ", [this.userid, this.userid])
-    }
-
-    if (this.sb_type.mods) {
-      q += format("AND mods = ? ", [this.mods]);
-    }
-
-    if (this.mods & ModHelper.modConst.Relax || this.mods & ModHelper.modConst.Relax2) {
+    if (this.mods & ModHelper.modConst.Relax > 0|| this.mods & ModHelper.modConst.Relax2 > 0) {
       q += format("AND (mods & 128 > 0 OR mods & 8192 > 0) ")
     }
-    this.personalBest = await mysql.query(q)
+    q += ' ORDER BY score DESC LIMIT 1';
+    this.scores.push((await mysql.query(q))[0]);
   }
 
+  async scoreboardPosition() {
+    // https://stackoverflow.com/questions/3490682/how-to-get-the-position-of-sorted-rows-using-mysql-and-php
+    let q = format("SELECT *, (SELECT COUNT(1) AS num FROM scores WHERE scores.score > s1.score AND beatmap_hash = ?) + 1 AS rank FROM scores AS s1 WHERE beatmap_hash = ? ORDER BY rank asc", [this.beatmapHash, this.beatmapHash]);
+    return (await mysql.query(q))[0].rank;
+  }
+  
+  async getScorebyID(scoreid = 0) {
+    const q = format("SELECT * FROM scores WHERE scoreid=?", scoreid)
+    return (await mysql.query(q))[0];
+  }
   async getScoreboardData() {
     await this.beatmap._init();
     let bm;
@@ -116,21 +124,21 @@ class sb {
     }
 
     // We don't need unessecery query's if ranked status is not loved/ranked/approved/qualified.
-    if(bm.rankedStatus != RankedStatus.not_submited && bm.rankedStatus != RankedStatus.needupdate && bm.rankedStatus != RankedStatus.unkown) {
+    if(bm.rankedStatus != RankedStatus.not_submited && bm.rankedStatus != RankedStatus.unkown) {
       await this.Friends();
       await this.Country();
-      await this.Scores();
       await this.getPersonalBest();
+      await this.Scores();
     }
 
     let outputString = '';
     outputString += await this.beatmap.toBeatmapHeader(this.sb_version, await this.totalScores())
-
-    for (let i = 0; i < 51; i++) {
+    
+    for (let i = 0; i < this.scores.length; i++) {
       const score = this.scores[i];
-      if(score && score[i]){
-        outputString += score.id + '|';
-        outputString += UserTools.getusername(score.userid) + '|';
+      if(score){
+        outputString += score.scoreid + '|';
+        outputString += (await UserTools.getusername(score.userid)).username + '|';
         outputString += score.score + '|';
         outputString += score.combo + '|';
         outputString += score.count_50 + '|';
@@ -142,12 +150,13 @@ class sb {
         outputString += Number(score.count_100 < 1 && score.count_50 < 0 && score.count_miss < 0) + '|';
         outputString += score.mods + '|';
         outputString += score.userid + '|';
-        outputString += (score.pos + 1) + '|';
-        outputString += 0 + '|';
-        outputString += 0;
+        outputString += (i !== 0 ? i : await this.scoreboardPosition()) + '|';
+        outputString += score.date + '|';
+        outputString += score.replay_hash ? 1 : 0;
       }
       outputString += '\n';
     }
+    console.dir(outputString);
     return outputString;
   }
 

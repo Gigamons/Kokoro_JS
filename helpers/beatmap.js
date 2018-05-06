@@ -191,13 +191,17 @@ class Beatmap {
     else if (status === rankedStatus.qualified)
       status = rankedStatus.loved;
 
-    let out = status + '|true';
-    if (status !== rankedStatus.not_submited && status !== rankedStatus.needupdate && status !== rankedStatus.unkown)
-      out += '|' + (this.beatmapID || 0) + '|' + (this.beatmapSetID || 0) + '|' + totalScores + '\n' +
-      '\n' +
-      this.title || '' + '\n' +
-      '\n';
-
+    let out = status + '|false';
+    if (status !== rankedStatus.not_submited && status !== rankedStatus.needupdate && status !== rankedStatus.unkown) {
+      out += '|' + (this.beatmapID || 0) + '|' + (this.beatmapSetID || 0) + '|' + totalScores + '\n';
+      out += this.playcount + '\n';
+      out += this.artist + ' - ' + this.title + ' [' + this.version + ']' + '\n' || '' + '\n';
+      out += '10.0\n';
+    }
+    if(out.indexOf("undefined") > -1) {
+      console.log(out);
+      out = rankedStatus.not_submited + '|false';
+    }
     return out;
   }
   async info() {
