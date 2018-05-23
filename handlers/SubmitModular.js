@@ -103,7 +103,6 @@ function forbiddenmodcombo(modSTRING) {
   if ((modSTRING.includes('EZ') && modSTRING.includes('HR'))
     || (modSTRING.includes('DT') && modSTRING.includes('HT'))
     || (modSTRING.includes('HT') && modSTRING.includes('NC'))
-    || (modSTRING.includes('EZ') && modSTRING.includes('EZ'))
     || (modSTRING.includes('RX') && modSTRING.includes('AP'))
     || (modSTRING.includes('NF') && modSTRING.includes('SD'))
     || (modSTRING.includes('DT') && modSTRING.includes('NC'))
